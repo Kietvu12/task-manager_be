@@ -62,19 +62,27 @@ export const deleteMission = async (req, res) => {
 
 export const updateMission = async (req, res) => {
     const { id } = req.params;
-    const { missionName, description, participants, estimatedCompletionTime, image } = req.body;
+    const { missionName, description, newParticipant, estimatedCompletionTime, image } = req.body;
+
     try {
-        const updatedMission = await missionModel.findByIdAndUpdate(
-            id,
-            {
-                missionName,
-                description,
-                participants,
-                estimatedCompletionTime,
-                image
-            },
-            { new: true }
-        );
+        const updateData = {};
+        if (missionName) updateData.missionName = missionName;
+        if (description) updateData.description = description;
+        if (estimatedCompletionTime) updateData.estimatedCompletionTime = estimatedCompletionTime;
+        if (image) updateData.image = image;
+
+       
+        if (newParticipant) {
+            updateData.$addToSet = { participants: newParticipant };
+        }
+
+       
+        const updatedMission = await missionModel.findByIdAndUpdate(id, updateData, { new: true });
+
+        if (!updatedMission) {
+            return res.status(404).json({ message: "Mission not found" });
+        }
+
         res.status(200).json(updatedMission);
     } catch (error) {
         res.status(500).json({ message: error.message });

@@ -5,6 +5,8 @@ import validator from "validator"
 import projectModel from "../model/projectModels.js"
 import taskModel from "../model/taskModels.js"
 import missionModel from "../model/missionModels.js"
+import mongoose from "mongoose"
+
 
 const loginUser = async (req,res) => {
     const {email, password} = req.body
@@ -105,5 +107,51 @@ export const deleteUser = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+const getProjectByUser = async(req, res) => {
+    const { id } = req.params;
+    try {
+        const projects = await projectModel.find({
+            "participants.userId": id
+        }).populate('participants.userId', 'name email') 
 
-export {loginUser, registerUser}
+        if (projects.length === 0) {
+            return res.status(404).json({ message: "No projects found for this user" });
+        }
+
+        res.status(200).json(projects);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+const getMissionByUser = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const mission = await missionModel.find({
+            "participants.userId": id
+        }).populate('participants.userId', 'name email') 
+
+        if (mission.length === 0) {
+            return res.status(404).json({ message: "No mission found for this user" });
+        }
+
+        res.status(200).json(mission);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+const getTaskByUser = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const task = await taskModel.find({
+            "assignedMembers.userId": id
+        }).populate('assignedMembers.userId', 'name email')
+        
+        if (task.length === 0){
+            return res.status(404).json({ message: "No task found for this user" });
+        }
+        res.status(200).json(task)
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+export {loginUser, registerUser, getProjectByUser, getMissionByUser, getTaskByUser}

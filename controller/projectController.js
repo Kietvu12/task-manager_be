@@ -42,20 +42,22 @@ export const createProject = async (req, res) => {
 
 export const updateProject = async (req, res) => {
     const { id } = req.params;
-    const { projectName, description, image, participants, estimatedCompletionTime } = req.body;
+    const { projectName, description, image, newParticipant, estimatedCompletionTime } = req.body;
 
     try {
-        const updatedProject = await projectModel.findByIdAndUpdate(
-            id,
-            {
-                projectName,
-                description,
-                image,
-                participants,
-                estimatedCompletionTime
-            },
-            { new: true }
-        );
+
+        const updateData = {};
+        if (projectName) updateData.projectName = projectName;
+        if (description) updateData.description = description;
+        if (image) updateData.image = image;
+        if (estimatedCompletionTime) updateData.estimatedCompletionTime = estimatedCompletionTime;
+       
+        if (newParticipant) {
+            updateData.$addToSet = { participants: newParticipant }; 
+        }
+
+        
+        const updatedProject = await projectModel.findByIdAndUpdate(id, updateData, { new: true });
 
         res.status(200).json(updatedProject);
     } catch (error) {

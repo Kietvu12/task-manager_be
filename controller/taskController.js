@@ -38,14 +38,17 @@ export const createTask = async (req, res) => {
 
 export const updateTask = async (req, res) => {
     const { id } = req.params;
-    const { taskName, description, assignedMembers, status } = req.body;
+    const { taskName, description, newAssignedMember, status } = req.body;
 
     try {
-        const updatedTask = await taskModel.findByIdAndUpdate(
-            id,
-            { taskName, description, assignedMembers, status },
-            { new: true }
-        );
+        const updateData = {};
+        if (taskName) updateData.taskName = taskName;
+        if (description) updateData.description = description;
+        if (status) updateData.status = status;
+        if (newAssignedMember) {
+            updateData.$addToSet = { assignedMembers: newAssignedMember };
+        }
+        const updatedTask = await taskModel.findByIdAndUpdate(id, updateData, { new: true });
 
         if (!updatedTask) {
             return res.status(404).json({ message: "Task not found" });
@@ -56,6 +59,7 @@ export const updateTask = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 export const deleteTask = async (req, res) => {
     const { id } = req.params;
