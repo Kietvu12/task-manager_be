@@ -107,22 +107,48 @@ export const deleteUser = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-const getProjectByUser = async(req, res) => {
-    const { id } = req.params;
+const getAllUser = async (req, res) => {
     try {
-        const projects = await projectModel.find({
-            "participants.userId": id
-        }).populate('participants.userId', 'name email') 
+        const users = await userModel.find({}, "name email"); // Lấy tất cả người dùng, chỉ chọn trường name và email
+        if (!users || users.length === 0) {
+            return res.status(404).json({ success: false, message: "No users found" });
+        }
+        res.status(200).json({ success: true, users });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+const calculateRemainingTime = (dueDate) => {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diff = Math.max(0, due - now);
+    const remainingDays = Math.floor(diff / (1000 * 60 * 60 * 24)); // Convert to days
+    return `${remainingDays} days remaining`;
+};
 
-        if (projects.length === 0) {
-            return res.status(404).json({ message: "No projects found for this user" });
+const getProjectsByUser = async (req, res) => {
+    try {
+        const userId = req.body.userId; // Lấy userId từ middleware auth
+        
+        // Tìm tất cả các dự án mà người dùng này có mặt trong participants
+        const projects = await projectModel.find({
+            "participants.userId": userId
+        }).populate("creator.userId", "username")  // Populate để lấy thông tin creator
+          .populate("missions", "missionName status") // Populate để lấy các nhiệm vụ liên quan (tùy theo bạn muốn hiển thị thông tin gì)
+          .exec();
+        
+        if (!projects || projects.length === 0) {
+            return res.status(404).json({ success: false, message: "No projects found for this user." });
         }
 
-        res.status(200).json(projects);
+        res.status(200).json({ success: true, projects });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error(error);
+        res.status(500).json({ success: false, message: "Server error." });
     }
-}
+};
+
+
 const getMissionByUser = async (req, res) => {
     const { id } = req.params;
     try {
@@ -154,4 +180,4 @@ const getTaskByUser = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
-export {loginUser, registerUser, getProjectByUser, getMissionByUser, getTaskByUser}
+export {loginUser, registerUser, getProjectsByUser, getMissionByUser, getTaskByUser, getAllUser}

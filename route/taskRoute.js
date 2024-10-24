@@ -5,11 +5,12 @@ import {
     deleteTask,
     removeParticipant
 } from '../controller/taskController.js';
+import authMiddleware from '../middleware/auth.js';
 
 const taskRouter = express.Router();
-taskRouter.post('/missions/:missionId/tasks', createTask);
-taskRouter.put('/tasks/:id', updateTask);
-taskRouter.delete('/tasks/:id', deleteTask);
-taskRouter.delete('/tasks/:taskId/participants/:userId', removeParticipant);
+taskRouter.post('/missions/:missionId/tasks', authMiddleware, createTask);
+taskRouter.put('/tasks/:id', authMiddleware, updateTask);
+taskRouter.delete('/tasks/:id', authMiddleware, deleteTask);
+taskRouter.delete('/tasks/:taskId/participants/:userId', authMiddleware, removeParticipant);
 
 export {taskRouter}

@@ -17,7 +17,7 @@ const missionSchema = new mongoose.Schema({
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
         username: { type: String, required: true }
     },
-    tasks: [{ type: mongoose.Schema.Types.ObjectId, ref: "task" }]
+    tasks: [{ type: mongoose.Schema.Types.ObjectId, ref: "task" }],
 }, { minimize: false });
 
 const missionModel = mongoose.models.mission || mongoose.model("mission", missionSchema);

@@ -4,15 +4,21 @@ import missionModel from "../model/missionModels.js";
 export const createTask = async (req, res) => {
     try {
         const { taskName, description, missionId, status, assignedMembers, creator } = req.body;
-        if (!taskName || !description || !missionId || !status || !assignedMembers || !creator) {
+
+        // Kiểm tra các trường bắt buộc
+        if (!taskName || !description || !missionId || !status || !assignedMembers || !creator || !creator.userId || !creator.username) {
             return res.status(400).json({ message: "Missing required fields" });
         }
+
+        // Tìm mission bằng missionId
         const mission = await missionModel.findById(missionId);
         if (!mission) {
             return res.status(404).json({ message: "Mission not found" });
         }
+
+        // Kiểm tra xem các thành viên được giao có phải là người tham gia của mission không
         const participantIds = mission.participants.map(p => p.userId.toString());
-        const assignedMemberIds = assignedMembers.map(member => member.userId);
+        const assignedMemberIds = assignedMembers.map(member => member.userId.toString());
 
         for (const memberId of assignedMemberIds) {
             if (!participantIds.includes(memberId)) {
@@ -20,6 +26,7 @@ export const createTask = async (req, res) => {
             }
         }
 
+        // Tạo task mới
         const newTask = new taskModel({
             taskName,
             description,
@@ -29,7 +36,14 @@ export const createTask = async (req, res) => {
             creator
         });
 
+        // Lưu task mới vào cơ sở dữ liệu
         await newTask.save();
+
+        // Thêm task vào mission cha
+        mission.tasks.push(newTask._id);
+        await mission.save();
+
+        // Trả về thông tin task mới đã tạo
         res.status(201).json(newTask);
     } catch (error) {
         res.status(500).json({ message: error.message });

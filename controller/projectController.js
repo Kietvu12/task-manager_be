@@ -104,3 +104,34 @@ export const removeParticipant = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+export const getTasksByProject = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+
+        // Tìm kiếm project bằng projectId
+        const project = await projectModel.findById(projectId).populate({
+            path: 'missions', // Lấy danh sách missions
+            populate: {
+                path: 'tasks', // Lấy danh sách tasks trong mỗi mission
+                model: 'task'
+            }
+        });
+
+        // Kiểm tra xem project có tồn tại không
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Lấy danh sách tasks từ tất cả các mission
+        const tasks = project.missions.reduce((acc, mission) => {
+            return acc.concat(mission.tasks); // Gộp tất cả tasks vào một mảng
+        }, []);
+
+        // Trả về danh sách tasks
+        res.status(200).json(tasks);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+

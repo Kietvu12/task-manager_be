@@ -14,40 +14,50 @@ export const createMission = async (req, res) => {
             image,
         } = req.body;
 
+        // Kiểm tra các trường bắt buộc
         if (!missionName || !description || !projectId || !participants || !creator || !creator.userId || !creator.username) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
+        // Tìm project bằng projectId
         const project = await projectModel.findById(projectId);
         if (!project) {
             return res.status(404).json({ message: "Project not found" });
         }
 
-        const participantIds = participants.map(participant => participant.userId);
+        // Kiểm tra tính hợp lệ của participants
+        const participantIds = participants.map(participant => participant.userId.toString());
         const projectParticipants = project.participants.map(p => p.userId.toString());
-
         const isValidParticipants = participantIds.every(id => projectParticipants.includes(id));
+
         if (!isValidParticipants) {
             return res.status(400).json({ message: "Some participants are not part of the project" });
         }
 
-    
+        // Tạo mission mới
         const newMission = new missionModel({
             missionName,
             description,
-            projectId,
             participants,
             estimatedCompletionTime,
             creator,
             image,
         });
 
+        // Lưu mission mới vào cơ sở dữ liệu
         await newMission.save();
+
+        // Thêm mission vào dự án cha
+        project.missions.push(newMission._id);
+        await project.save();
+
+        // Trả về thông tin mission mới đã tạo
         res.status(201).json(newMission);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 export const deleteMission = async (req, res) => {
     const { id } = req.params;

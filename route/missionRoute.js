@@ -5,15 +5,18 @@ import {
     deleteMission,
     removeParticipant
 } from '../controller/missionController.js';
+import authMiddleware from '../middleware/auth.js';
 
 const missionRouter = express.Router();
 
-missionRouter.post('/projects/:projectId/missions', createMission);
+missionRouter.post('/projects/:projectId/missions',authMiddleware, createMission);
 
-missionRouter.put('/missions/:id', updateMission);
+missionRouter.put('/missions/:id', authMiddleware, updateMission);
 
-missionRouter.delete('/missions/:id', deleteMission);
+missionRouter.delete('/missions/:id', authMiddleware, deleteMission);
 
-missionRouter.delete('/missions/:missionId/participants/:userId', removeParticipant);
+missionRouter.delete('/missions/:missionId/participants/:userId', authMiddleware, removeParticipant);
+
+
 
 export {missionRouter};
