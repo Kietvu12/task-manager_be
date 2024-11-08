@@ -1,24 +1,39 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const projectSchema = new mongoose.Schema({
-    projectName: { type: String, required: true },
-    description: { type: String, required: true },
-    image: { type: String },
-    participants: [
-        {
-            userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
-            role: { type: String, required: true }
-        }
-    ],
-    creationTime: { type: Date, default: Date.now },
-    estimatedCompletionTime: { type: Date },
-    actualCompletionTime: { type: Date, default: null },
-    creator: {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
-        username: { type: String, required: true }
+    name: {
+        type: String,
+        required: true,
     },
-    missions: [{ type: mongoose.Schema.Types.ObjectId, ref: "mission" }]
+    description: {
+        type: String,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+    dueDate: {
+        type: Date,
+    },
+    status: {
+        type: String,
+        enum: ['In Progress', 'Done', 'Warning'],
+        default: 'In Progress',
+    },
+    participants: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+    }],
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: true,
+    },
+    tasks: [{ 
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Task',
+    }]
 }, { minimize: false });
 
-const projectModel = mongoose.models.project || mongoose.model("project", projectSchema);
-export default projectModel;
+const Project = mongoose.models.Project || mongoose.model('Project', projectSchema);
+export default Project;

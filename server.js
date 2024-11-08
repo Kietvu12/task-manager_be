@@ -3,8 +3,7 @@ import cors from "cors"
 import { connectDB } from './config/db.js'
 import { userRouter } from './route/userRoute.js'
 import'dotenv/config'
-import { projectRouter } from './route/projectRoute.js'
-import { missionRouter } from './route/missionRoute.js'
+import {  projectRouter } from './route/projectRoute.js'
 import { taskRouter } from './route/taskRoute.js'
 
 
@@ -18,7 +17,6 @@ connectDB()
 
 app.use("/api/user", userRouter)
 app.use("/api/project", projectRouter)
-app.use("/api/mission",missionRouter)
 app.use("/api/task", taskRouter)
 
 

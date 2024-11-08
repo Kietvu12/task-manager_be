@@ -1,137 +1,170 @@
-import missionModel from "../model/missionModels.js";
-import projectModel from "../model/projectModels.js";
-import taskModel from "../model/taskModels.js";
-import userModel from "../model/userModels.js";
+import Project from '../model/projectModels.js'
+import Task from '../model/taskModels.js'
+import userModel from '../model/userModels.js'
 
-
-export const createProject = async (req, res) => {
+export const getProjects = async (req, res) => {
     try {
-        const { projectName, description, image, participants, estimatedCompletionTime, creator } = req.body;
-        if (!projectName || !description || !participants || !creator || !creator.userId || !creator.username) {
-            return res.status(400).json({ message: "Missing required fields" });
+        const projects = await Project.find();
+        res.json({ success: true, projects });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching projects" });
+    }
+};
+
+export const getProjectParticipants = async (req, res) => {
+    const { projectId } = req.params;
+    console.log(projectId);
+    
+    try {
+        const project = await Project.findById(projectId).populate('participants', 'name email');
+        res.json({ success: true, participants: project.participants });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching participants" });
+    }
+};
+
+export const addProject = async (req, res) => {
+    const { name, description, dueDate, createdBy, participantIds } = req.body;
+
+    try {
+        const creator = await userModel.findById(createdBy);
+        console.log(req.body);
+        if (!creator) {
+            console.log("Creator Not Found");
+            return res.status(404).json({ success: false, message: "Creator not found" });
         }
-        const participantIds = participants.map(participant => participant.userId);
-        const existingUsers = await userModel.find({ _id: { $in: participantIds } });
         
-        if (existingUsers.length !== participantIds.length) {
-            return res.status(400).json({ message: "Some participants do not exist" });
-        }
-
-
-        const creatorExists = await userModel.findById(creator.userId);
-        if (!creatorExists) {
-            return res.status(400).json({ message: "Creator does not exist" });
-        }
-
-        const newProject = new projectModel({
-            projectName,
+        const participants = await userModel.find({ _id: { $in: participantIds } });
+        const participantIdsSet = new Set(participants.map(user => user._id.toString()));
+        const newProject = new Project({
+            name,
             description,
-            image,
-            participants,
-            estimatedCompletionTime,
-            creator
+            dueDate,
+            createdBy,
+            participants: [createdBy, ...Array.from(participantIdsSet)] 
         });
 
         await newProject.save();
-        res.status(201).json(newProject);
+        res.json({ success: true, project: newProject });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.log(error);
+        res.status(500).json({ success: false, message: "Error creating project" });
     }
 };
-
-
 export const updateProject = async (req, res) => {
-    const { id } = req.params;
-    const { projectName, description, image, newParticipant, estimatedCompletionTime } = req.body;
-
+    const { projectId } = req.params;
+    const { name, description, dueDate, status } = req.body; // Không lấy participants từ req.body
     try {
-
-        const updateData = {};
-        if (projectName) updateData.projectName = projectName;
-        if (description) updateData.description = description;
-        if (image) updateData.image = image;
-        if (estimatedCompletionTime) updateData.estimatedCompletionTime = estimatedCompletionTime;
-       
-        if (newParticipant) {
-            updateData.$addToSet = { participants: newParticipant }; 
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ success: false, message: "Project not found" });
         }
+        if (name) project.name = name;
+        if (description) project.description = description;
+        if (dueDate) project.dueDate = dueDate;
+        if (status) project.status = status;
 
-        
-        const updatedProject = await projectModel.findByIdAndUpdate(id, updateData, { new: true });
-
-        res.status(200).json(updatedProject);
+        await project.save();
+        res.json({ success: true, project });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.log(error);
+        res.status(500).json({ success: false, message: "Error updating project" });
     }
 };
+
 
 export const deleteProject = async (req, res) => {
-    const { id } = req.params;
+    const { projectId } = req.params; 
+    console.log("Deleting project ID:", projectId);
+    
     try {
-
-        await missionModel.deleteMany({ projectId: id });
-        await taskModel.deleteMany({ projectId: id });
-
-        await projectModel.findByIdAndDelete(id);
-        res.status(200).json({ message: "Project deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-export const removeParticipant = async (req, res) => {
-    const { projectId, userId } = req.params;
-    try {
-        const project = await projectModel.findById(projectId);
+        const project = await Project.findById(projectId);
         if (!project) {
-            return res.status(404).json({ message: "Project not found" });
+            return res.status(404).json({ success: false, message: "Project not found" }); // Nếu không tìm thấy dự án
         }
+        await Task.deleteMany({ project: projectId });
 
-        project.participants = project.participants.filter((p) => p.userId.toString() !== userId);
-        await project.save();
+        await Project.findByIdAndDelete(projectId);
 
-        await missionModel.updateMany(
-            { projectId, "participants.userId": userId },
-            { $pull: { participants: { userId } } }
-        );
-        await taskModel.updateMany(
-            { projectId, "participants.userId": userId },
-            { $pull: { participants: { userId } } }
-        );
-
-        res.status(200).json({ message: "Participant removed successfully" });
+        res.json({ success: true, message: "Project and associated tasks deleted" });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Error deleting project:", error);
+        res.status(500).json({ success: false, message: "Error deleting project" }); // Nếu có lỗi
     }
 };
 
-export const getTasksByProject = async (req, res) => {
+export const addUserToProject = async (req, res) => {
+    const { projectId } = req.params;
+    const userId = req.body.userId && req.body.userId.trim() ? req.body.userId : req.user.id; 
+    console.log("UserId:", userId);
+    
     try {
-        const { projectId } = req.params;
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ success: false, message: "Project not found" });
+        }
+        
+        if (project.participants.includes(userId)) {
+            return res.json({ success: false, message: "User already in project" });
+        }
+        
+        project.participants.push(userId);
+        await project.save();
+        res.json({ success: true, project });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Error adding user to project" });
+    }
+};
 
-        // Tìm kiếm project bằng projectId
-        const project = await projectModel.findById(projectId).populate({
-            path: 'missions', // Lấy danh sách missions
-            populate: {
-                path: 'tasks', // Lấy danh sách tasks trong mỗi mission
-                model: 'task'
-            }
+
+export const removeUserFromProject = async (req, res) => {
+    const { projectId } = req.params;
+    const userId = req.body.userId || req.user._id; 
+    try {
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ success: false, message: "Project not found" });
+        }
+        const index = project.participants.indexOf(userId);
+        if (index === -1) {
+            return res.json({ success: false, message: "User not in project" });
+        }
+        project.participants.splice(index, 1);
+        await project.save();
+        res.json({ success: true, project });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: "Error removing user from project" });
+    }
+};
+export const addTaskToProject = async (req, res) => {
+    const { projectId } = req.params;
+    const { name, description, dueDate, createdBy, participantIds } = req.body;
+
+    try {
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ success: false, message: "Project not found" });
+        }
+        const participants = await userModel.find({ _id: { $in: participantIds } });
+        const participantIdsSet = new Set(participants.map(user => user._id.toString()));
+        const newTask = new Task({
+            name,
+            description,
+            dueDate,
+            createdBy,
+            project: projectId,
+            participants: [createdBy, ...participantIdsSet]
         });
 
-        // Kiểm tra xem project có tồn tại không
-        if (!project) {
-            return res.status(404).json({ message: "Project not found" });
-        }
+        await newTask.save();
+        project.tasks.push(newTask._id);
+        await project.save();
 
-        // Lấy danh sách tasks từ tất cả các mission
-        const tasks = project.missions.reduce((acc, mission) => {
-            return acc.concat(mission.tasks); // Gộp tất cả tasks vào một mảng
-        }, []);
-
-        // Trả về danh sách tasks
-        res.status(200).json(tasks);
+        res.json({ success: true, task: newTask });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error(error);
+        res.status(500).json({ success: false, message: "Error creating task" });
     }
 };
-

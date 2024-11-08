@@ -1,26 +1,18 @@
 import express from 'express';
-import {
-    createProject,
-    updateProject,
-    deleteProject,
-    removeParticipant,
-    getTasksByProject
-} from '../controller/projectController.js';
 import authMiddleware from '../middleware/auth.js';
+import { 
+    getProjects, getProjectParticipants, addProject, updateProject, deleteProject, 
+    addUserToProject, addTaskToProject, removeUserFromProject
+} from '../controller/projectController.js';
 
 const projectRouter = express.Router();
 
-
-projectRouter.post('/add', authMiddleware, createProject);
-
-projectRouter.put('/projects/:id', authMiddleware, updateProject);
-
-projectRouter.delete('/projects/:id',authMiddleware, deleteProject);
-
-projectRouter.delete('/projects/:projectId/participants/:userId', authMiddleware, removeParticipant);
-
-projectRouter.get('/projects/:projectId/tasks', authMiddleware, getTasksByProject);
-
-
-
-export {projectRouter};
+projectRouter.get('/projects', authMiddleware, getProjects);
+projectRouter.get('/projects/:projectId/participants', authMiddleware, getProjectParticipants);
+projectRouter.post('/projects', authMiddleware, addProject);
+projectRouter.put('/projects/:projectId', authMiddleware, updateProject);
+projectRouter.delete('/projects/:projectId', authMiddleware, deleteProject);
+projectRouter.post('/projects/:projectId/addUser', authMiddleware, addUserToProject);
+projectRouter.post('/projects/:projectId/addTask', authMiddleware, addTaskToProject);
+projectRouter.delete('/projects/:projectId/removeUser', authMiddleware, removeUserFromProject);
+export {projectRouter}

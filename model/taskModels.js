@@ -1,32 +1,40 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const taskSchema = new mongoose.Schema({
-    taskName: { type: String, required: true },
-    description: { type: String, required: true },
-    image: { type: String },
-    comments: [
-        {
-            userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
-            username: { type: String, required: true },
-            commentDate: { type: Date, default: Date.now },
-            content: { type: String, required: true }
-        }
-    ],
-    status: { type: String, enum: ['todo', 'doing', 'done', 'pending'], required: true },
-    creationTime: { type: Date, default: Date.now },
-    estimatedCompletionTime: { type: Date },
-    actualCompletionTime: { type: Date, default: null },
-    assignedMembers: [
-        {
-            userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
-            username: { type: String, required: true }
-        }
-    ],
-    creator: {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
-        username: { type: String, required: true }
+    name: {
+        type: String,
+        required: true,
+    },
+    description: {
+        type: String,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+    dueDate: {
+        type: Date,
+    },
+    status: {
+        type: String,
+        enum: ['Pending', 'To do', 'Doing', 'Done', 'Cancel'],
+        default: 'Pending',
+    },
+    project: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project',
+        required: true,
+    },
+    participants: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+    }],
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: true,
     }
 }, { minimize: false });
 
-const taskModel = mongoose.models.task || mongoose.model("task", taskSchema);
-export default taskModel;
+const Task = mongoose.models.Task || mongoose.model('Task', taskSchema);
+export default Task;
